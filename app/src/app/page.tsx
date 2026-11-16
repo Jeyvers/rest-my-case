@@ -1,9 +1,12 @@
 import { ContractStatus } from "@/components/ContractStatus";
-import Link from "next/link";
 import { ExampleCases } from "@/components/ExampleCases";
 import { LoginButton } from "@/components/LoginButton";
 import { Scales } from "@/components/Scales";
+import { formatDay, lockedView, utcDay } from "@/lib/daily";
 import { network } from "@/lib/network";
+import { caseForDay, dailyView } from "@/lib/server/daily";
+import { DailyGame } from "./daily/[day]/DailyGame";
+import { HotNow } from "./daily/[day]/HotNow";
 
 const MODES = [
   {
@@ -30,55 +33,91 @@ const STEPS = [
   { title: "Verdict!", body: "Votes are revealed. Jurors who voted on time share the fees." },
 ];
 
-export default function Home() {
+const PITCH = (
+  <p className="max-w-md text-lg text-white/90">
+    Can&apos;t agree? Put it to a jury. 5 random, verified people read both sides, vote in secret, and settle it. Small
+    fee in G$. No verdict, money back.
+  </p>
+);
+
+/** Shown only on a day with no approved Daily Case: the original hand-written example. */
+function StaticHero() {
   return (
     <>
-      <section className="bg-court pb-14 pt-8 text-white">
+      <p className="max-w-xl rounded-2xl bg-white/10 px-4 py-3 text-left text-sm leading-relaxed text-white/90 sm:px-5 sm:text-base">
+        I can&apos;t have kids, so my best friend became our surrogate. Two years later, a DNA test showed my husband is
+        our son&apos;s father, but I&apos;m not his mother. My husband admitted he&apos;d been sleeping with her the whole
+        time we were &ldquo;trying.&rdquo; I&apos;m divorcing him and giving up my rights to the boy. My husband, my
+        ex-friend and my own family all call me heartless for abandoning a child.
+      </p>
+
+      {/* The face-off: side A vs side B, weighed on the scales */}
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
+        <div className="-rotate-3 rounded-2xl border-[3px] border-ink bg-side-a px-3 py-4 shadow-[0_6px_0_0_var(--color-ink)]">
+          <p className="font-display text-xl font-extrabold sm:text-3xl">Me</p>
+          <p className="text-sm font-semibold text-white/90">&ldquo;Am I the asshole?&rdquo;</p>
+        </div>
+        <Scales animated className="h-28 w-28 drop-shadow-[0_4px_0_rgba(27,16,53,0.35)] sm:h-36 sm:w-36" />
+        <div className="rotate-3 rounded-2xl border-[3px] border-ink bg-side-b px-3 py-4 shadow-[0_6px_0_0_var(--color-ink)]">
+          <p className="font-display text-xl font-extrabold sm:text-3xl">My family</p>
+          <p className="text-sm font-semibold text-white/90">&ldquo;You need to forgive him.&rdquo;</p>
+        </div>
+      </div>
+      {PITCH}
+      <LoginButton />
+    </>
+  );
+}
+
+function prevDay(day: string): string {
+  return new Date(Date.parse(`${day}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
+ * Home leads with today's Daily Case, playable before signing in: the game is the hook, and signing in is what
+ * gets your pick counted. Pitch and how-it-works follow underneath.
+ */
+export default async function Home() {
+  const today = utcDay();
+  const [view, prev] = await Promise.all([
+    dailyView(today).catch(() => null),
+    caseForDay(prevDay(today)).catch(() => null),
+  ]);
+
+  return (
+    <>
+      <section className={`bg-court pt-8 text-white ${view ? "pb-20" : "pb-14"}`}>
         <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 px-4 text-center">
           <h1 className="font-display text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl">
             You be the judge.
           </h1>
-
-          <p className="max-w-xl rounded-2xl bg-white/10 px-4 py-3 text-left text-sm leading-relaxed text-white/90 sm:px-5 sm:text-base">
-            I can&apos;t have kids, so my best friend became our surrogate. Two years later, a DNA test showed my
-            husband is our son&apos;s father, but I&apos;m not his mother. My husband admitted he&apos;d been sleeping
-            with her the whole time we were &ldquo;trying.&rdquo; I&apos;m divorcing him and giving up my rights to
-            the boy. My husband, my ex-friend and my own family all call me heartless for abandoning a child.
-          </p>
-
-          {/* The face-off: side A vs side B, weighed on the scales */}
-          <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
-            <div className="-rotate-3 rounded-2xl border-[3px] border-ink bg-side-a px-3 py-4 shadow-[0_6px_0_0_var(--color-ink)]">
-              <p className="font-display text-xl font-extrabold sm:text-3xl">Me</p>
-              <p className="text-sm font-semibold text-white/90">&ldquo;Am I the asshole?&rdquo;</p>
+          {view ? (
+            <div className="flex items-center gap-3">
+              <Scales animated className="h-14 w-14 shrink-0 drop-shadow-[0_3px_0_rgba(27,16,53,0.35)]" />
+              <p className="text-left text-lg text-white/90">
+                Today&apos;s case is below. Read it, call it, then see if you were right.
+              </p>
             </div>
-            <Scales animated className="h-28 w-28 drop-shadow-[0_4px_0_rgba(27,16,53,0.35)] sm:h-36 sm:w-36" />
-            <div className="rotate-3 rounded-2xl border-[3px] border-ink bg-side-b px-3 py-4 shadow-[0_6px_0_0_var(--color-ink)]">
-              <p className="font-display text-xl font-extrabold sm:text-3xl">My family</p>
-              <p className="text-sm font-semibold text-white/90">&ldquo;You need to forgive him.&rdquo;</p>
-            </div>
-          </div>
-
-          <p className="max-w-md text-lg text-white/90">
-            Can&apos;t agree? Put it to a jury. 5 random, verified people read both sides, vote in secret, and settle
-            it. Small fee in G$. No verdict, money back.
-          </p>
-          <LoginButton />
+          ) : (
+            <StaticHero />
+          )}
         </div>
       </section>
 
       <div className="mx-auto flex max-w-2xl flex-col gap-12 px-4 py-10">
-        <Link
-          href="/daily"
-          className="tile -mt-16 flex items-center gap-4 bg-verdict p-5 transition-transform hover:-translate-y-0.5"
-        >
-          <span className="text-4xl" aria-hidden>⚖️</span>
-          <span className="flex flex-1 flex-col">
-            <span className="font-display text-2xl font-extrabold">Case of the Day</span>
-            <span className="text-ink/80">One new argument every day. Read the clues, call the verdict, share your score.</span>
-          </span>
-          <span className="font-display text-2xl font-extrabold" aria-hidden>→</span>
-        </Link>
+        {view && (
+          <div className="-mt-24 flex flex-col gap-10">
+            <div className="tile p-4 sm:p-6">
+              <DailyGame initial={lockedView(view)} prevDay={prev ? prevDay(today) : null} dateLabel={formatDay(today)} heading="h2" />
+            </div>
+            <HotNow />
+            <section className="tile flex flex-col items-center gap-4 bg-court p-6 text-center text-white">
+              <p className="font-display text-2xl font-extrabold">Got your own argument?</p>
+              {PITCH}
+              <LoginButton />
+            </section>
+          </div>
+        )}
         <section className="flex flex-col gap-4">
           <div>
             <h2 className="font-display text-2xl font-extrabold">You be the jury</h2>

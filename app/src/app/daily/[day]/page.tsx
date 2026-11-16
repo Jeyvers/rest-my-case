@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { LoginButton } from "@/components/LoginButton";
 import { Page, Title } from "@/components/ui";
-import { formatDay, isDay, utcDay } from "@/lib/daily";
+import { formatDay, isDay, lockedView, utcDay } from "@/lib/daily";
 import { caseForDay, dailyView } from "@/lib/server/daily";
 import { DailyGame } from "./DailyGame";
 import { HotNow } from "./HotNow";
@@ -35,8 +36,17 @@ export default async function DailyPage({ params }: Props) {
   }
   return (
     <Page>
-      <DailyGame initial={view} prevDay={prev ? prevDay(day) : null} dateLabel={formatDay(day)} />
+      <DailyGame initial={lockedView(view)} prevDay={prev ? prevDay(day) : null} dateLabel={formatDay(day)} />
       {view.today && <HotNow />}
+      {/* Most people land here from a shared link: show them what the app is for. */}
+      <section className="tile flex flex-col items-center gap-4 bg-court p-6 text-center text-white">
+        <p className="font-display text-2xl font-extrabold">Got your own argument?</p>
+        <p className="max-w-md text-lg text-white/90">
+          Put it to a jury. 5 random, verified people read both sides, vote in secret, and settle it. Small fee in G$. No
+          verdict, money back.
+        </p>
+        <LoginButton />
+      </section>
     </Page>
   );
 }

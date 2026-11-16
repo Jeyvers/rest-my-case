@@ -1,4 +1,4 @@
-import { isDay, utcDay, type Side } from "@/lib/daily";
+import { isDay, lockedView, utcDay, type Side } from "@/lib/daily";
 import { network } from "@/lib/network";
 import { dailyView } from "@/lib/server/daily";
 import { bad } from "@/lib/server/http";
@@ -8,7 +8,7 @@ import { db } from "@/lib/server/supabase";
 
 const noStore = { headers: { "cache-control": "no-store" } };
 
-/** The Daily Case for a UTC day. Works signed out; signed in and verified, it includes your saved pick. */
+/** The Daily Case for a UTC day. Signed out: the teaser only (no clues, no answer). Signed in: the full case. */
 export async function GET(request: Request, ctx: RouteContext<"/api/daily/[day]">) {
   const { day } = await ctx.params;
   if (!isDay(day)) return bad("Bad date.");
@@ -16,12 +16,13 @@ export async function GET(request: Request, ctx: RouteContext<"/api/daily/[day]"
   const person = user ? (await verifiedPerson(user.wallets))?.person ?? null : null;
   const view = await dailyView(day, { person });
   if (!view) return bad(day > utcDay() ? "No peeking at future cases." : "No case that day.", 404);
+  if (!user) return Response.json({ ...lockedView(view), counted: false }, noStore);
   return Response.json({ ...view, counted: Boolean(person) }, noStore);
 }
 
 /**
- * Lock in a pick: { vote: "A" | "B", clue: number }. Free. Saved (one per verified person, final) only for
- * today's case; anyone else just gets the reveal back.
+ * Lock in a pick: { vote: "A" | "B", clue: number }. Free, but you must be signed in to play. Saved (one per
+ * verified person, final) for today's case; signed-in but unverified players get the reveal without being counted.
  */
 export async function POST(request: Request, ctx: RouteContext<"/api/daily/[day]">) {
   const { day } = await ctx.params;
@@ -31,8 +32,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/daily/[day]
   const clueN = Number.isInteger(clue) && clue! >= 0 && clue! <= 20 ? clue! : 0;
 
   const user = await authenticate(request);
-  const person = user ? (await verifiedPerson(user.wallets))?.person ?? null : null;
-  if (person && user && day === utcDay()) {
+  if (!user) return bad("Sign in to play.", 401);
+  const person = (await verifiedPerson(user.wallets))?.person ?? null;
+  if (person && day === utcDay()) {
     const { error } = await db()
       .from("daily_votes")
       .insert({ network: network.name, day, person, privy_user_id: user.userId, vote, clue: clueN });

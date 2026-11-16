@@ -41,7 +41,11 @@ export type DailyCase = {
   story: string;
   sideA: { who: string; text: string };
   sideB: { who: string; text: string };
+  /** Empty while locked (signed out); clueCount still says how many are waiting. */
   clues: string[];
+  clueCount: number;
+  /** Signed out: the teaser only (title, story, sides). Sign in to see clues and play. */
+  locked: boolean;
   category: string;
   /** How the answer is decided: a known answer, a real Rest My Case jury, or today's verified players. */
   basis: "known" | "case_jury" | "players";
@@ -90,7 +94,7 @@ export function majority(t: { a: number; b: number }): Side | null {
 
 /** Wordle-style share text. `cluesSeen` = clues showing when they locked in. */
 export function shareText(c: DailyCase, pick: Side, cluesSeen: number, url: string): string {
-  const squares = c.clues.length ? c.clues.map((_, i) => (i < cluesSeen ? "🟨" : "⬛")).join("") : "";
+  const squares = c.clueCount ? Array.from({ length: c.clueCount }, (_, i) => (i < cluesSeen ? "🟨" : "⬛")).join("") : "";
   const who = pick === "A" ? c.sideA.who : c.sideB.who;
   const answer = c.reveal?.answer ?? null;
   const lines = [`⚖️ Rest My Case · Case of the Day #${c.number}`, `“${c.title}”`, ""];
@@ -98,8 +102,8 @@ export function shareText(c: DailyCase, pick: Side, cluesSeen: number, url: stri
     const right = answer === pick;
     lines.push(
       right
-        ? `✅ Called it${c.clues.length ? ` with ${cluesSeen} of ${c.clues.length} clues` : ""}`
-        : `❌ Got it wrong${c.clues.length ? ` with ${cluesSeen} of ${c.clues.length} clues` : ""}`,
+        ? `✅ Called it${c.clueCount ? ` with ${cluesSeen} of ${c.clueCount} clues` : ""}`
+        : `❌ Got it wrong${c.clueCount ? ` with ${cluesSeen} of ${c.clueCount} clues` : ""}`,
     );
   } else {
     lines.push(`🗳️ I sided with ${who}. Verdict at midnight UTC.`);
@@ -107,4 +111,9 @@ export function shareText(c: DailyCase, pick: Side, cluesSeen: number, url: stri
   if (squares) lines.push(squares);
   lines.push("", `Who's right? ${url}`);
   return lines.join("\n");
+}
+
+/** The signed-out teaser: no clues, no answer. */
+export function lockedView<T extends DailyCase>(v: T): T {
+  return { ...v, clues: [], locked: true, reveal: null };
 }

@@ -149,6 +149,8 @@ export async function dailyView(day: string, opts: { myPick?: Side | null; perso
     sideA: { who: row.side_a_who, text: row.side_a },
     sideB: { who: row.side_b_who, text: row.side_b },
     clues: row.clues ?? [],
+    clueCount: (row.clues ?? []).length,
+    locked: false,
     category: row.category,
     basis,
     caseUrl: row.source === "user" && row.source_key === dataKey ? `/c/${row.source_case_id}` : null,

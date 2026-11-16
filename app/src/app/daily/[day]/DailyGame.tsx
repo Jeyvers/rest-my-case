@@ -34,7 +34,9 @@ function untilMidnight(nowSec: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-export function DailyGame({ initial, prevDay, dateLabel }: { initial: View; prevDay: string | null; dateLabel: string }) {
+export function DailyGame(props: { initial: View; prevDay: string | null; dateLabel: string; heading?: "h1" | "h2" }) {
+  const { initial, prevDay, dateLabel } = props;
+  const Heading = props.heading ?? "h1";
   const authFetch = useAuthFetch();
   const { ready, authenticated, login } = usePrivy();
   const now = useNow(30_000);
@@ -73,19 +75,19 @@ export function DailyGame({ initial, prevDay, dateLabel }: { initial: View; prev
       })
       .catch(() => {});
   }, [ready, authenticated, day, authFetch]);
-  // A pick made signed out on an earlier visit: fetch its reveal again.
+  // A pick made on an earlier visit (saved on this device): fetch its reveal again.
   useEffect(() => {
-    if (pick && !v.reveal) {
+    if (authenticated && !v.locked && pick && !v.reveal) {
       authFetch<View>(`/api/daily/${day}`, { method: "POST", body: JSON.stringify({ vote: pick, clue: cluesAtPick }) })
         .then(setV)
         .catch(() => {});
     }
-  }, [pick, v.reveal, day, cluesAtPick, authFetch]);
+  }, [authenticated, v.locked, pick, v.reveal, day, cluesAtPick, authFetch]);
 
   const remember = useCallback((s: Saved) => save(day, s), [day]);
 
   function revealClue() {
-    const n = Math.min(clues + 1, v.clues.length);
+    const n = Math.min(clues + 1, v.clueCount);
     setClues(n);
     remember({ clues: n, pick, cluesAtPick });
   }
@@ -109,7 +111,7 @@ export function DailyGame({ initial, prevDay, dateLabel }: { initial: View; prev
   }
 
   const shareUrl = typeof window === "undefined" ? `/daily/${day}` : `${window.location.origin}/daily/${day}`;
-  const resultText = pick ? shareText(v, pick, cluesAtPick, shareUrl) : `⚖️ Case of the Day #${v.number}: “${v.title}”\nWho's right? ${shareUrl}`;
+  const resultText = pick && !v.locked ? shareText(v, pick, cluesAtPick, shareUrl) : `⚖️ Case of the Day #${v.number}: “${v.title}”\nWho's right? ${shareUrl}`;
 
   async function share() {
     if (navigator.share) {
@@ -121,15 +123,17 @@ export function DailyGame({ initial, prevDay, dateLabel }: { initial: View; prev
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const locked = v.locked;
+  const mine = locked ? null : pick;
   const r = v.reveal;
-  const showReveal = Boolean((pick || peek) && r);
+  const showReveal = Boolean((mine || peek) && r);
   const answer = r?.answer ?? null;
   const decided = Boolean(answer && (r?.final || v.basis !== "players"));
-  const right = decided && pick ? answer === pick : null;
+  const right = decided && mine ? answer === mine : null;
   const who = (s: Side) => (s === "A" ? v.sideA.who : v.sideB.who);
   const total = r ? r.tally.a + r.tally.b : 0;
   const pa = total ? Math.round((r!.tally.a / total) * 100) : 0;
-  const allClues = Boolean(pick) || peek ? v.clues.length : clues;
+  const allClues = Boolean(mine) || peek ? v.clues.length : clues;
 
   return (
     <div className="flex flex-col gap-5">
@@ -144,7 +148,7 @@ export function DailyGame({ initial, prevDay, dateLabel }: { initial: View; prev
             {v.category}
           </span>
         </div>
-        <h1 className="font-display text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-5xl">{v.title}</h1>
+        <Heading className="font-display text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-5xl">{v.title}</Heading>
       </div>
 
       <section className="tile bg-court p-5 text-white">
@@ -157,14 +161,14 @@ export function DailyGame({ initial, prevDay, dateLabel }: { initial: View; prev
           label={`A · ${v.sideA.who}`}
           text={v.sideA.text}
           highlight={showReveal && decided && answer === "A"}
-          badge={pick === "A" ? "Your pick" : undefined}
+          badge={mine === "A" ? "Your pick" : undefined}
         />
         <SideCard
           side="B"
           label={`B · ${v.sideB.who}`}
           text={v.sideB.text}
           highlight={showReveal && decided && answer === "B"}
-          badge={pick === "B" ? "Your pick" : undefined}
+          badge={mine === "B" ? "Your pick" : undefined}
         />
       </div>
 
@@ -181,21 +185,49 @@ export function DailyGame({ initial, prevDay, dateLabel }: { initial: View; prev
               </li>
             ))}
           </ol>
-          {allClues < v.clues.length && (
+          {allClues < v.clueCount && (
             <button type="button" onClick={revealClue} className="btn-secondary self-start">
-              🔍 Reveal clue {allClues + 1} of {v.clues.length}
+              🔍 Reveal clue {allClues + 1} of {v.clueCount}
             </button>
           )}
         </section>
       )}
 
+      {/* Locked: signed out. The case is the hook; playing needs an account. */}
+      {locked && (
+        <section className="tile flex flex-col gap-3 bg-verdict p-5">
+          <p className="font-display text-2xl font-extrabold">Who&apos;s right? Sign in to play.</p>
+          <p>
+            {v.clueCount > 0 ? `${v.clueCount} clues are waiting. ` : ""}
+            Call the verdict, see if you were right, and see how everyone else picked. It&apos;s free.
+          </p>
+          <div className="flex gap-3" aria-hidden>
+            {(["A", "B"] as const).map((s) => (
+              <span
+                key={s}
+                className={`flex-1 rounded-2xl border-[3px] border-ink px-3 py-3 text-center font-display text-lg font-extrabold text-white opacity-50 ${
+                  s === "A" ? "bg-side-a" : "bg-side-b"
+                }`}
+              >
+                🔒 {s} · {who(s)}
+              </span>
+            ))}
+          </div>
+          {!ready || authenticated ? (
+            <p className="flex items-center gap-2 font-semibold"><Spinner /> Opening the case…</p>
+          ) : (
+            <button type="button" onClick={login} className="btn self-start bg-white">Sign in to play</button>
+          )}
+        </section>
+      )}
+
       {/* Pick */}
-      {!pick && !peek && (
+      {!locked && !mine && !peek && (
         <section className="tile flex flex-col gap-3 bg-verdict p-5">
           <p className="font-display text-2xl font-extrabold">Who&apos;s right?</p>
-          {v.clues.length > 0 && (
+          {v.clueCount > 0 && (
             <Hint>
-              Lock in with fewer clues to brag about it: your result shows how many you needed ({clues} of {v.clues.length} so far).
+              Lock in with fewer clues to brag about it: your result shows how many you needed ({clues} of {v.clueCount} so far).
             </Hint>
           )}
           <div className="flex gap-3">
@@ -236,7 +268,7 @@ export function DailyGame({ initial, prevDay, dateLabel }: { initial: View; prev
             </>
           ) : (
             <>
-              <p className="font-display text-2xl font-extrabold">🗳️ You sided with {pick ? who(pick) : "…"}</p>
+              <p className="font-display text-2xl font-extrabold">🗳️ You sided with {mine ? who(mine) : "…"}</p>
               <p>
                 No fixed answer on this one: today&apos;s verified players decide. The verdict lands at midnight UTC
                 {v.today ? `, in ${untilMidnight(now)}` : ""}.
@@ -264,13 +296,10 @@ export function DailyGame({ initial, prevDay, dateLabel }: { initial: View; prev
               <p className="text-xs text-ink/60">{total} {total === 1 ? "player" : "players"}</p>
             </div>
           )}
-          {pick && v.today && !v.counted && (
+          {mine && v.today && !v.counted && (
             <Hint>
-              Your pick isn&apos;t in the count yet. {authenticated ? "Verify you're a real person" : "Sign in and verify"} to
-              have it counted tomorrow.
-              {!authenticated && ready && (
-                <button type="button" onClick={login} className="ml-1 font-bold underline underline-offset-4">Sign in</button>
-              )}
+              Your pick isn&apos;t in the count. Verify you&apos;re a real person (from your account page) and tomorrow&apos;s
+              pick will count.
             </Hint>
           )}
         </section>
@@ -278,8 +307,8 @@ export function DailyGame({ initial, prevDay, dateLabel }: { initial: View; prev
 
       {/* Share */}
       <section className="tile flex flex-col gap-3 bg-lilac p-5">
-        <p className="font-display text-xl font-extrabold">{pick ? "Share your result" : "Challenge a friend"}</p>
-        {pick && <pre className="whitespace-pre-wrap rounded-xl bg-white p-3 font-sans text-sm leading-relaxed">{resultText}</pre>}
+        <p className="font-display text-xl font-extrabold">{mine ? "Share your result" : "Challenge a friend"}</p>
+        {mine && <pre className="whitespace-pre-wrap rounded-xl bg-white p-3 font-sans text-sm leading-relaxed">{resultText}</pre>}
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={share} className="btn">{copied ? "Copied!" : "Share"}</button>
           <a
@@ -310,7 +339,7 @@ export function DailyGame({ initial, prevDay, dateLabel }: { initial: View; prev
         {v.today ? (
           <span className="text-ink/60">Next case in {untilMidnight(now)}</span>
         ) : (
-          <Link href="/daily" className="underline underline-offset-4">Today&apos;s case →</Link>
+          <Link href="/" className="underline underline-offset-4">Today&apos;s case →</Link>
         )}
       </nav>
     </div>
