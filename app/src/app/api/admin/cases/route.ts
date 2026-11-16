@@ -7,7 +7,12 @@ import { db } from "@/lib/server/supabase";
 
 /** Admin: every case in the bank, plus which days already ran on this network. */
 export async function GET(request: Request) {
-  if (!(await isAdmin(await authenticate(request)))) return bad("Admins only.", 403);
+  const user = await authenticate(request);
+  if (!(await isAdmin(user))) {
+    // Tell the signed-in person which wallet(s) they're using, so the owner can add theirs to ADMIN_WALLETS.
+    const yours = user?.wallets.length ? ` You're signed in with ${user.wallets.join(", ")}.` : "";
+    return bad(`Admins only.${yours} To make a wallet an admin, add it to ADMIN_WALLETS in the hosting settings and redeploy.`, 403);
+  }
   const [{ data: cases, error }, { data: slots }] = await Promise.all([
     db().from("case_bank").select("*").order("created_at", { ascending: false }),
     db().from("daily_slots").select("day, case_id").eq("network", network.name).order("day", { ascending: false }).limit(400),
