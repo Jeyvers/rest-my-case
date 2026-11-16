@@ -64,3 +64,32 @@ export function checkTitle(title: string, opts: RuleOptions = {}): TextCheck {
   // "Remove the link." -> "Remove the link from the title." (length messages already say "title").
   return { errors: errors.map((e) => (e.startsWith("Remove the ") ? e.replace(/\.$/, " from the title.") : e)), warnings };
 }
+
+const g = (r: RegExp) => new RegExp(r.source, r.flags.includes("g") ? r.flags : r.flags + "g");
+
+/**
+ * Prepares a user's case text for the public Daily Case: removes contact details outright (emails, links, phone
+ * numbers, street addresses, @handles) and flags anything that may still identify someone, for the admin to check.
+ * Names are flagged, not removed: guessing wrong would mangle the story.
+ */
+export function redactForFeature(text: string): { text: string; flags: string[] } {
+  const flags: string[] = [];
+  let t = text;
+  for (const [re, what] of [
+    [EMAIL, "an email address"],
+    [LINK, "a link"],
+    [PHONE, "a phone number"],
+    [ADDRESS, "a street address"],
+    [HANDLE, "an @handle"],
+  ] as const) {
+    if (re.test(t)) {
+      flags.push(`Removed ${what}. Check the sentence still reads well.`);
+      t = t.replace(g(re), (m) => (m.startsWith(" ") ? " " : "") + "[removed]");
+    }
+  }
+  const names = [...new Set([...t.matchAll(g(FULL_NAME))].map((m) => m[0]))];
+  if (names.length) flags.push(`Possible name: ${names.join(", ")}. Replace with a role.`);
+  const named = [...t.matchAll(g(NAMED))].map((m) => m[0]);
+  if (named.length) flags.push(`Possible name: “${named.join("”, “")}”. Replace with a role.`);
+  return { text: t, flags };
+}

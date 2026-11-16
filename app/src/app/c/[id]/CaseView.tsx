@@ -29,6 +29,7 @@ import { calledIt } from "@/lib/crowd";
 import { Loading } from "@/components/Loading";
 import { Spinner } from "@/components/Loading";
 import { Comments } from "@/components/Comments";
+import { FeaturePanel } from "@/components/FeaturePanel";
 
 export function CaseView() {
   const { id } = useParams<{ id: string }>();
@@ -81,6 +82,7 @@ export function CaseView() {
       </div>
 
       {winner && <Verdict caseId={caseId} c={c} jurors={jurors} winner={winner} isA={isA} isB={isB} oneSided={oneSided} />}
+      {c.status === 5 && <FeaturePanel caseId={caseId.toString()} />}
       {c.status === 6 && (
         <section id="verdict" className="scroll-mt-4">
         <Panel>

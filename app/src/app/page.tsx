@@ -1,4 +1,5 @@
 import { ContractStatus } from "@/components/ContractStatus";
+import Link from "next/link";
 import { ExampleCases } from "@/components/ExampleCases";
 import { LoginButton } from "@/components/LoginButton";
 import { Scales } from "@/components/Scales";
@@ -67,6 +68,17 @@ export default function Home() {
       </section>
 
       <div className="mx-auto flex max-w-2xl flex-col gap-12 px-4 py-10">
+        <Link
+          href="/daily"
+          className="tile -mt-16 flex items-center gap-4 bg-verdict p-5 transition-transform hover:-translate-y-0.5"
+        >
+          <span className="text-4xl" aria-hidden>⚖️</span>
+          <span className="flex flex-1 flex-col">
+            <span className="font-display text-2xl font-extrabold">Case of the Day</span>
+            <span className="text-ink/80">One new argument every day. Read the clues, call the verdict, share your score.</span>
+          </span>
+          <span className="font-display text-2xl font-extrabold" aria-hidden>→</span>
+        </Link>
         <section className="flex flex-col gap-4">
           <div>
             <h2 className="font-display text-2xl font-extrabold">You be the jury</h2>

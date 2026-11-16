@@ -14,7 +14,7 @@ import { db } from "./supabase";
  * added their side, a nudge before the invite expires, the verdict, and refunds. Jurors who voted: their pay is ready.
  * Each alert is recorded before sending, so it goes out at most once per wallet per case per kind.
  */
-export type AlertKind = "drawn" | "reveal" | "joined" | "nudge" | "verdict" | "refund" | "juror_paid";
+export type AlertKind = "drawn" | "reveal" | "joined" | "nudge" | "verdict" | "refund" | "juror_paid" | "featured";
 type Message = { title: string; body: string; url: string; cta: string };
 
 let vapidReady = false;

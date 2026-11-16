@@ -13,9 +13,12 @@ const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: [
 const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.APP_URL ?? "https://www.restmycase.xyz"),
   title: "Rest My Case",
   description: "Settle an argument with a jury of real people. 18+.",
   manifest: "/manifest.webmanifest", // lets phones "Add to Home Screen" (needed for push on iPhone)
+  openGraph: { siteName: "Rest My Case", type: "website" },
+  twitter: { card: "summary_large_image" }, // X uses the og:image share cards at full width
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
