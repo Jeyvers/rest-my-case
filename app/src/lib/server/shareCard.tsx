@@ -138,7 +138,7 @@ export function Title({ children, size = 60 }: { children: string; size?: number
   );
 }
 
-function SideCard(props: { side: "A" | "B"; who: string; says: string; tilt: number; win?: boolean; dim?: boolean }) {
+function SideCard(props: { side: "A" | "B"; who: string; says?: string; tilt: number; win?: boolean; dim?: boolean }) {
   return (
     <div
       style={{
@@ -155,10 +155,19 @@ function SideCard(props: { side: "A" | "B"; who: string; says: string; tilt: num
         position: "relative",
       }}
     >
-      <span style={{ fontSize: 22, color: "rgba(255,255,255,0.9)", textTransform: "uppercase", letterSpacing: 1.5 }}>
-        {`${props.side} · ${clip(props.who, 24)}`}
-      </span>
-      <span style={{ fontSize: 30, lineHeight: 1.18, marginTop: 6 }}>{`“${clip(props.says, 84)}”`}</span>
+      {props.says ? (
+        <>
+          <span style={{ fontSize: 22, color: "rgba(255,255,255,0.9)", textTransform: "uppercase", letterSpacing: 1.5 }}>
+            {`${props.side} · ${clip(props.who, 24)}`}
+          </span>
+          <span style={{ fontSize: 30, lineHeight: 1.18, marginTop: 6 }}>{`“${clip(props.says, 84)}”`}</span>
+        </>
+      ) : (
+        // Names only (the Daily Case): one big label.
+        <span style={{ fontFamily: "Display", fontSize: 42, lineHeight: 1.1, padding: "10px 0" }}>
+          {`${props.side} · ${clip(props.who, 22)}`}
+        </span>
+      )}
       {props.win && (
         <div
           style={{
@@ -183,7 +192,7 @@ function SideCard(props: { side: "A" | "B"; who: string; says: string; tilt: num
 }
 
 /** Side A vs Side B, with a VS badge between them. */
-export function Faceoff(props: { a: { who: string; says: string }; b: { who: string; says: string }; winner?: "A" | "B" | null }) {
+export function Faceoff(props: { a: { who: string; says?: string }; b: { who: string; says?: string }; winner?: "A" | "B" | null }) {
   const w = props.winner ?? null;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 18 }}>

@@ -93,6 +93,12 @@ export function majority(t: { a: number; b: number }): Side | null {
 }
 
 /** Wordle-style share text. `cluesSeen` = clues showing when they locked in. */
+/** "What would you do?" cases ask that instead of "Who's right?". */
+export const WWYD = "what would you do";
+export function question(c: { category: string }): string {
+  return c.category.trim().toLowerCase() === WWYD ? "What would you do?" : "Who's right?";
+}
+
 export function shareText(c: DailyCase, pick: Side, cluesSeen: number, url: string): string {
   const squares = c.clueCount ? Array.from({ length: c.clueCount }, (_, i) => (i < cluesSeen ? "🟨" : "⬛")).join("") : "";
   const who = pick === "A" ? c.sideA.who : c.sideB.who;
@@ -109,7 +115,7 @@ export function shareText(c: DailyCase, pick: Side, cluesSeen: number, url: stri
     lines.push(`🗳️ I sided with ${who}. Verdict at midnight UTC.`);
   }
   if (squares) lines.push(squares);
-  lines.push("", `Who's right? ${url}`);
+  lines.push("", `${question(c)} ${url}`);
   return lines.join("\n");
 }
 

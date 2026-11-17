@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { useCallback, useEffect, useState } from "react";
-import { ErrorNote, Hint, SideCard } from "@/components/ui";
+import { ErrorNote, Hint } from "@/components/ui";
 import { Spinner } from "@/components/Loading";
 import { useAuthFetch } from "@/hooks/useAuthFetch";
 import { useNow } from "@/hooks/useNow";
-import { shareText, type DailyCase, type Side } from "@/lib/daily";
+import { question, shareText, type DailyCase, type Side } from "@/lib/daily";
 
 type Saved = { clues: number; pick: Side | null; cluesAtPick: number };
 type View = DailyCase & { counted?: boolean };
@@ -84,6 +84,20 @@ export function DailyGame(props: { initial: View; prevDay: string | null; dateLa
     }
   }, [authenticated, v.locked, pick, v.reveal, day, cluesAtPick, authFetch]);
 
+  const [card, setCard] = useState<File | null>(null);
+  useEffect(() => {
+    let off = false;
+    fetch(`/daily/${day}/opengraph-image`)
+      .then((r) => (r.ok ? r.blob() : null))
+      .then((b) => {
+        if (b && !off) setCard(new File([b], `rest-my-case-${day}.png`, { type: "image/png" }));
+      })
+      .catch(() => {});
+    return () => {
+      off = true;
+    };
+  }, [day]);
+
   const remember = useCallback((s: Saved) => save(day, s), [day]);
 
   function revealClue() {
@@ -111,9 +125,14 @@ export function DailyGame(props: { initial: View; prevDay: string | null; dateLa
   }
 
   const shareUrl = typeof window === "undefined" ? `/daily/${day}` : `${window.location.origin}/daily/${day}`;
-  const resultText = pick && !v.locked ? shareText(v, pick, cluesAtPick, shareUrl) : `⚖️ Case of the Day #${v.number}: “${v.title}”\nWho's right? ${shareUrl}`;
+  const resultText = pick && !v.locked ? shareText(v, pick, cluesAtPick, shareUrl) : `⚖️ Case of the Day #${v.number}: “${v.title}”\n${question(v)} ${shareUrl}`;
 
   async function share() {
+    // With the picture card when the device can share files (phones, Safari); text otherwise.
+    if (card && navigator.canShare?.({ files: [card] })) {
+      await navigator.share({ files: [card], text: resultText }).catch(() => {});
+      return;
+    }
     if (navigator.share) {
       await navigator.share({ text: resultText }).catch(() => {});
       return;
@@ -121,6 +140,16 @@ export function DailyGame(props: { initial: View; prevDay: string | null; dateLa
     await navigator.clipboard.writeText(resultText).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function download() {
+    if (!card) return;
+    const url = URL.createObjectURL(card);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = card.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   const locked = v.locked;
@@ -155,23 +184,6 @@ export function DailyGame(props: { initial: View; prevDay: string | null; dateLa
         <p className="text-lg leading-relaxed">{v.story}</p>
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <SideCard
-          side="A"
-          label={`A · ${v.sideA.who}`}
-          text={v.sideA.text}
-          highlight={showReveal && decided && answer === "A"}
-          badge={mine === "A" ? "Your pick" : undefined}
-        />
-        <SideCard
-          side="B"
-          label={`B · ${v.sideB.who}`}
-          text={v.sideB.text}
-          highlight={showReveal && decided && answer === "B"}
-          badge={mine === "B" ? "Your pick" : undefined}
-        />
-      </div>
-
       {/* Clues: one at a time. The fewer you needed, the better your share card looks. */}
       {v.clues.length > 0 && (
         <section className="flex flex-col gap-2">
@@ -196,20 +208,20 @@ export function DailyGame(props: { initial: View; prevDay: string | null; dateLa
       {/* Locked: signed out. The case is the hook; playing needs an account. */}
       {locked && (
         <section className="tile flex flex-col gap-3 bg-verdict p-5">
-          <p className="font-display text-2xl font-extrabold">Who&apos;s right? Sign in to play.</p>
+          <p className="font-display text-2xl font-extrabold">{question(v)} Sign in to play.</p>
           <p>
             {v.clueCount > 0 ? `${v.clueCount} clues are waiting. ` : ""}
             Call the verdict, see if you were right, and see how everyone else picked. It&apos;s free.
           </p>
-          <div className="flex gap-3" aria-hidden>
+          <div className="grid gap-3 sm:grid-cols-2" aria-hidden>
             {(["A", "B"] as const).map((s) => (
               <span
                 key={s}
-                className={`flex-1 rounded-2xl border-[3px] border-ink px-3 py-3 text-center font-display text-lg font-extrabold text-white opacity-50 ${
+                className={`flex items-center justify-center rounded-2xl border-[3px] border-ink px-4 py-3 text-center text-white ${
                   s === "A" ? "bg-side-a" : "bg-side-b"
                 }`}
               >
-                🔒 {s} · {who(s)}
+                <span className="font-display text-lg font-extrabold">🔒 {s} · {who(s)}</span>
               </span>
             ))}
           </div>
@@ -224,24 +236,24 @@ export function DailyGame(props: { initial: View; prevDay: string | null; dateLa
       {/* Pick */}
       {!locked && !mine && !peek && (
         <section className="tile flex flex-col gap-3 bg-verdict p-5">
-          <p className="font-display text-2xl font-extrabold">Who&apos;s right?</p>
+          <p className="font-display text-2xl font-extrabold">{question(v)}</p>
           {v.clueCount > 0 && (
             <Hint>
               Lock in with fewer clues to brag about it: your result shows how many you needed ({clues} of {v.clueCount} so far).
             </Hint>
           )}
-          <div className="flex gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {(["A", "B"] as const).map((s) => (
               <button
                 key={s}
                 type="button"
                 disabled={busy !== null}
                 onClick={() => lockIn(s)}
-                className={`flex-1 rounded-2xl border-[3px] border-ink px-3 py-3 font-display text-lg font-extrabold text-white shadow-[0_5px_0_0_var(--color-ink)] transition-[transform,box-shadow] duration-75 active:translate-y-[5px] active:shadow-none ${
+                className={`flex items-center justify-center rounded-2xl border-[3px] border-ink px-4 py-3 text-center text-white shadow-[0_5px_0_0_var(--color-ink)] transition-[transform,box-shadow] duration-75 active:translate-y-[5px] active:shadow-none ${
                   s === "A" ? "bg-side-a" : "bg-side-b"
                 }`}
               >
-                {busy === s ? <Spinner /> : `${s} · ${who(s)}`}
+                <span className="font-display text-lg font-extrabold">{busy === s ? <Spinner /> : `${s} · ${who(s)}`}</span>
               </button>
             ))}
           </div>
@@ -264,6 +276,7 @@ export function DailyGame(props: { initial: View; prevDay: string | null; dateLa
               )}
               <p className="text-lg">
                 The answer: <strong>{answer} · {who(answer!)}</strong>
+                {mine && <span className="text-ink/60"> (you picked {mine} · {who(mine)})</span>}
               </p>
             </>
           ) : (
@@ -311,6 +324,11 @@ export function DailyGame(props: { initial: View; prevDay: string | null; dateLa
         {mine && <pre className="whitespace-pre-wrap rounded-xl bg-white p-3 font-sans text-sm leading-relaxed">{resultText}</pre>}
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={share} className="btn">{copied ? "Copied!" : "Share"}</button>
+          {card && (
+            <button type="button" onClick={download} className="btn-secondary">
+              Download image
+            </button>
+          )}
           <a
             className="btn-secondary"
             target="_blank"

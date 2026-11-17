@@ -18,14 +18,17 @@ export function parseBankInput(raw: unknown, partial: boolean): { data: Partial<
   };
   const errors = [
     text("title", 3, 80, "Title"),
-    text("story", 10, 1500, "Story"),
+    text("story", 10, 600, "Story"),
     text("side_a_who", 1, 40, "Side A label"),
-    text("side_a", 2, 1000, "Side A"),
     text("side_b_who", 1, 40, "Side B label"),
-    text("side_b", 2, 1000, "Side B"),
     text("category", 2, 30, "Category"),
   ].filter(Boolean);
   if (errors.length) return { error: errors[0]! };
+  // The Daily Case shows only the two names, so each side's text just mirrors its name (the column is required).
+  for (const [who, says] of [["side_a_who", "side_a"], ["side_b_who", "side_b"]] as const) {
+    const name = out[who];
+    if (name !== undefined) out[says] = name.length >= 2 ? name : `${name} side`;
+  }
 
   if (!partial || has("answer")) {
     if (!["A", "B", "jury"].includes(String(b.answer))) return { error: "Answer must be A, B or jury." };

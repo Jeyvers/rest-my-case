@@ -274,13 +274,11 @@ function Editor({ initial, onDone }: { initial: BankCase | null; onDone: () => P
       </Title>
       <Field label="Title"><input className={input} value={f.title} maxLength={80} onChange={(e) => set("title", e.target.value)} /></Field>
       <Field label="Story" hint="The setup everyone reads first. Roles, never names.">
-        <textarea className={input} rows={4} value={f.story} maxLength={1500} onChange={(e) => set("story", e.target.value)} />
+        <textarea className={input} rows={4} value={f.story} maxLength={600} onChange={(e) => set("story", e.target.value)} />
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Side A label"><input className={input} value={f.side_a_who} maxLength={40} placeholder="Me" onChange={(e) => set("side_a_who", e.target.value)} /></Field>
-        <Field label="Side B label"><input className={input} value={f.side_b_who} maxLength={40} placeholder="My landlord" onChange={(e) => set("side_b_who", e.target.value)} /></Field>
-        <Field label="Side A says"><textarea className={input} rows={3} value={f.side_a} maxLength={1000} onChange={(e) => set("side_a", e.target.value)} /></Field>
-        <Field label="Side B says"><textarea className={input} rows={3} value={f.side_b} maxLength={1000} onChange={(e) => set("side_b", e.target.value)} /></Field>
+        <Field label="Side A name"><input className={input} value={f.side_a_who} maxLength={40} placeholder="Me" onChange={(e) => set("side_a_who", e.target.value)} /></Field>
+        <Field label="Side B name"><input className={input} value={f.side_b_who} maxLength={40} placeholder="My landlord" onChange={(e) => set("side_b_who", e.target.value)} /></Field>
       </div>
       <Field label={`Clues (one per line, up to ${MAX_CLUES})`} hint="Revealed one at a time, in this order. Save the most telling for last.">
         <textarea className={input} rows={4} value={cluesText} onChange={(e) => setCluesText(e.target.value)} />

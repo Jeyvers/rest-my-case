@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LoginButton } from "@/components/LoginButton";
 import { Page, Title } from "@/components/ui";
-import { formatDay, isDay, lockedView, utcDay } from "@/lib/daily";
+import { formatDay, isDay, lockedView, question, utcDay } from "@/lib/daily";
 import { caseForDay, dailyView } from "@/lib/server/daily";
 import { DailyGame } from "./DailyGame";
 import { HotNow } from "./HotNow";
@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const found = isDay(day) ? await caseForDay(day).catch(() => null) : null;
   if (!found) return { title: "Case of the Day · Rest My Case" };
   const title = `Case of the Day #${found.number}: ${found.row.title}`;
-  const description = `${found.row.side_a_who} vs ${found.row.side_b_who}. Who's right? Play free on Rest My Case.`;
+  const description = `${found.row.side_a_who} or ${found.row.side_b_who}? ${question(found.row)} Play free on Rest My Case.`;
   return { title: `${title} · Rest My Case`, description, openGraph: { title, description }, twitter: { title, description } };
 }
 
