@@ -40,6 +40,17 @@ export default function Terms() {
       </ul>
       <p>We may hide any case that breaks these rules. Hiding removes it from the app; it can&apos;t undo payments.</p>
 
+      <h2>Ex Stories</h2>
+      <ul>
+        <li>Ex Stories are anonymous stories about an ex. They are stories only: no jury, no verdict.</li>
+        <li>
+          <strong>Stories must not identify real people. Stories that do will be removed.</strong> Call them X, Mr X
+          or Miss X. No real names, workplaces, schools, @handles, contact details or exact places.
+        </li>
+        <li>No harassment, threats, intimate images or anything about a minor.</li>
+        <li>Up to 3 stories a day. You can add to or delete your own story at any time.</li>
+      </ul>
+
       <h2>Public cases</h2>
       <p>
         Cases are public: when you sign up, you agree that anyone may read both sides of your cases and the

@@ -275,3 +275,25 @@ export function Plain({ line }: { line: string }) {
 }
 
 export const siteHost = () => (process.env.APP_URL ?? "https://www.restmycase.xyz").replace(/^https?:\/\//, "").replace(/\/$/, "");
+
+/** A white quote card with the opening lines of a text (Ex Stories). */
+export function Excerpt({ text }: { text: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        background: "white",
+        color: C.ink,
+        border: `5px solid ${C.ink}`,
+        borderRadius: 28,
+        padding: "22px 30px",
+        boxShadow: `0 9px 0 0 ${C.ink}`,
+        fontFamily: "Body",
+        fontSize: 32,
+        lineHeight: 1.3,
+      }}
+    >
+      {`“${clip(text, 150)}”`}
+    </div>
+  );
+}

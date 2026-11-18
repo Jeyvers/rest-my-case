@@ -29,6 +29,17 @@ export default function Privacy() {
         <li>Cases stay public. Report a case that breaks the rules and we&apos;ll review it; harmful cases are hidden.</li>
       </ul>
 
+      <h2>Ex Stories</h2>
+      <ul>
+        <li>Stories are shown without your name, wallet, profile or badge, and with the date only, never the time.</li>
+        <li>
+          We keep which account posted a story privately, only to enforce the daily limit and to let you add to or
+          delete it. We never show it to anyone.
+        </li>
+        <li>Stories are typed. There are no voice notes, so no audio is ever recorded or stored.</li>
+        <li>Deleting a story removes it, its reactions and its reports completely.</li>
+      </ul>
+
       <h2>Verification</h2>
       <p>
         Face verification is done by GoodDollar, not by us. We only read whether your wallet is verified. We never see

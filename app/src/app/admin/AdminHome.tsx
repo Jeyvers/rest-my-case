@@ -103,6 +103,7 @@ export function AdminHome() {
         <Title sub="Write, review, approve and schedule. Nothing goes live until you approve it.">Daily Case admin</Title>
         <button className="btn shrink-0" onClick={() => setEditing("new")}>+ New</button>
       </div>
+      <Link href="/admin/stories" className="btn-secondary self-start">Ex Stories reports →</Link>
 
       <section className="tile flex flex-col gap-2 p-4">
         <p className="font-display text-lg font-extrabold">Line-up</p>
