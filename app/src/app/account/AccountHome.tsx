@@ -52,7 +52,7 @@ function AccountBody() {
     <div className="flex flex-col gap-5">
       <WithdrawPanel />
 
-      {!me.verified && <VerifyPrompt />}
+      {me.ready && !me.verified && <VerifyPrompt />}
 
       <Panel>
         <dl className="grid grid-cols-2 gap-4">
