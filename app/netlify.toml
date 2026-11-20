@@ -1,0 +1,12 @@
+# Netlify reads this from the base directory (`app`). Settings here override the Netlify UI.
+[build]
+  command = "pnpm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Runs the Next.js server parts (SSR pages, API routes, proxy) as Netlify functions.
+# Without it Netlify uploads .next as static files and every route 404s.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
